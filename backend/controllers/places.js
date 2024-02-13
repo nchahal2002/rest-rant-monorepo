@@ -13,6 +13,9 @@ router.post('/', async (req, res) => {
     if (!req.body.state) {
         req.body.state = 'USA'
     }
+    if (req.currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: 'You are not allowed to add a place'})
+    }
     const place = await Place.create(req.body)
     res.json(place)
 })
@@ -60,6 +63,9 @@ router.put('/:placeId', async (req, res) => {
             res.json(place)
         }
     }
+    if (req.currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: 'You are not allowed to edit places'})
+    }
 })
 
 router.delete('/:placeId', async (req, res) => {
@@ -79,9 +85,10 @@ router.delete('/:placeId', async (req, res) => {
             res.json(place)
         }
     }
+    if (req.currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: 'You are not allowed to delete places'})
+    } 
 })
-
-  
 
 router.post('/:placeId/comments', async (req, res) => {
     const placeId = Number(req.params.placeId)
@@ -98,18 +105,13 @@ router.post('/:placeId/comments', async (req, res) => {
 
     let currentUser;
     try {
-        const [method, token] = req.headers.authorization.split(' ')
-        if (method == 'Bearer') {
-            const result = await jwt.decode(process.env.JWT_SECRET, token)
-            const { id } = result.value
-            currentUser = await User.findOne({
-                where: {
-                    userId: id 
-                }
-            })
-        }
+        currentUser = await User.findOne({
+            where: {
+                userId: req.session.userId
+            }
+        })
     } catch {
-        currentUser = null
+        currentUser = null;
     }
 
     const author = await User.findOne({
